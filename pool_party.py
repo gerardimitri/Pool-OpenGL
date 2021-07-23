@@ -60,7 +60,7 @@ def readFaceVertex(faceDescription):
 
 
 
-def readOBJ(filename, textureFileName):
+def readOBJ(filename):
 
     vertices = []
     normals = []
@@ -97,12 +97,12 @@ def readOBJ(filename, textureFileName):
             # Checking each of the triangle vertices
             for i in range(0,3):
                 vertex = vertices[face[i][0]-1]
-                textCoords = textCoords[face[i][1]-1]
+                texCoord = textCoords[face[i][1]-1]
                 normal = normals[face[i][2]-1]
 
                 vertexData += [
                     vertex[0], vertex[1], vertex[2],
-                    textCoords[0], textCoords[1],
+                    texCoord[0], texCoord[1],
                     normal[0], normal[1], normal[2]
                 ]
 
@@ -110,7 +110,7 @@ def readOBJ(filename, textureFileName):
             indices += [index, index + 1, index + 2]
             index += 3        
 
-        return bs.Shape(vertexData, indices, textureFileName)
+        return bs.Shape(vertexData, indices)
 
 
 
@@ -161,8 +161,8 @@ if __name__ == "__main__":
     # Creating shapes on GPU memory
     gpuAxis = createGPUShape(mvpPipeline, bs.createAxis(7))
 
-    shapePoolTable = readOBJ('pool_table2.obj', 'pool_table.jpg')
-    gpuPoolTable = createGPUShape(pipeline, shapePoolTable)
+    shapePoolTable = readOBJ('pool_table2.obj')
+    gpuPoolTable = createGPUShape(phongPipeline, shapePoolTable)
     gpuPoolTable.texture = es.textureSimpleSetup('pool_table.jpg', GL_REPEAT, GL_REPEAT, GL_LINEAR, GL_LINEAR)
 
 
@@ -176,7 +176,7 @@ if __name__ == "__main__":
     glUniform3f(glGetUniformLocation(phongPipeline.shaderProgram, "Kd"), 0.9, 0.9, 0.9)
     glUniform3f(glGetUniformLocation(phongPipeline.shaderProgram, "Ks"), 1.0, 1.0, 1.0)
 
-    glUniform3f(glGetUniformLocation(phongPipeline.shaderProgram, "lightPosition"), -3, 0, 3)
+    glUniform3f(glGetUniformLocation(phongPipeline.shaderProgram, "lightPosition"), 0, 0, 20)
     
     glUniform1ui(glGetUniformLocation(phongPipeline.shaderProgram, "shininess"), 100)
     glUniform1f(glGetUniformLocation(phongPipeline.shaderProgram, "constantAttenuation"), 0.001)
@@ -220,10 +220,10 @@ if __name__ == "__main__":
             camera_theta += 2* dt
 
         # Setting up the view transform
-        R = 12
+        R = 20
         camX = R * np.sin(camera_theta)
         camY = R * np.cos(camera_theta)
-        viewPos = np.array([camX, camY, 7])
+        viewPos = np.array([camX, camY, 20])
         view = tr.lookAt(
             viewPos,
             np.array([0,0,1]),
@@ -244,7 +244,7 @@ if __name__ == "__main__":
         glUniform3f(glGetUniformLocation(phongPipeline.shaderProgram, "viewPosition"), viewPos[0], viewPos[1], viewPos[2])
         glUniformMatrix4fv(glGetUniformLocation(phongPipeline.shaderProgram, "view"), 1, GL_TRUE, view)
 
-        glUniformMatrix4fv(glGetUniformLocation(phongPipeline.shaderProgram, "model"), 1, GL_TRUE, tr.uniformScale(3))
+        glUniformMatrix4fv(glGetUniformLocation(phongPipeline.shaderProgram, "model"), 1, GL_TRUE, tr.uniformScale(0.1))
         phongPipeline.drawCall(gpuPoolTable)
 
         
