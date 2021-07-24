@@ -5,6 +5,8 @@ import numpy as np
 import random
 import sys
 import os.path
+
+from numpy.core.defchararray import array
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import grafica.transformations as tr
 import grafica.basic_shapes as bs
@@ -13,9 +15,15 @@ import grafica.lighting_shaders as ls
 import grafica.performance_monitor as pm
 from grafica.assets_path import getAssetPath
 from OBJreader import *
+from collisions import *
 
 __author__ = "Gerardo Trincado"
 __license__ = "MIT"
+
+CIRCLE_DISCRETIZATION = 20
+RADIUS = 0.08
+WINDOW_WIDTH = 600
+WINDOW_HEIGHT = 600
 
 # A class to store the application control
 class Controller:
@@ -65,6 +73,28 @@ def on_key(window, key, scancode, action, mods):
 
 #     else:
 #         print('Unknown key')
+
+ball_pos=[np.array([-12, 0, 0]),
+    np.array([10, 0, 0]),
+    np.array([10+np.sqrt(3)*RADIUS, RADIUS, 0]),
+    np.array([10+np.sqrt(3)*RADIUS, -RADIUS, 0]),
+    np.array([10+2*np.sqrt(3)*RADIUS, 0, 0]),
+    np.array([10+2*np.sqrt(3)*RADIUS, 2*RADIUS, 0]),
+    np.array([10+2*np.sqrt(3)*RADIUS, -2*RADIUS, 0]),
+    np.array([10+3*np.sqrt(3)*RADIUS, RADIUS, 0]),
+    np.array([10+3*np.sqrt(3)*RADIUS, -RADIUS, 0]),
+    np.array([10+3*np.sqrt(3)*RADIUS, 3*RADIUS, 0]),
+    np.array([10+3*np.sqrt(3)*RADIUS, -3*RADIUS, 0]),
+    np.array([10+4*np.sqrt(3)*RADIUS, 0, 0]),
+    np.array([10+4*np.sqrt(3)*RADIUS, 2*RADIUS, 0]),
+    np.array([10+4*np.sqrt(3)*RADIUS, -2*RADIUS, 0]),
+    np.array([10+4*np.sqrt(3)*RADIUS, 4*RADIUS, 0]),
+    np.array([10+4*np.sqrt(3)*RADIUS, -4*RADIUS, 0]),
+    ]
+
+ball_rgb =[]
+for i in range(16):
+    ball_rgb.append([1,1,1])
 
 
 
@@ -148,14 +178,39 @@ if __name__ == "__main__":
 
     perfMonitor = pm.PerformanceMonitor(glfw.get_time(), 0.5)
 
+
+    #balls
+    # Creating shapes on GPU memory
+    balls = []
+    for i in range(16):
+        position = ball_pos[i]
+        velocity = np.array([
+            0.0,
+            0.0,
+            0.0
+        ])
+        r, g, b = ball_rgb[i]
+        ball = Circle(pipeline, position, velocity, r, g, b)
+        balls += [ball]
+
+    perfMonitor = pm.PerformanceMonitor(glfw.get_time(), 0.5)
+
+    # glfw will swap buffers as soon as possible
+    glfw.swap_interval(0)
+
+    gravityAcceleration = np.array([0.0, -1.0], dtype=np.float32)
+    noGravityAcceleration = np.array([0.0, 0.0], dtype=np.float32)
+
     # glfw will swap buffers as soon as possible
     glfw.swap_interval(0)
 
     while not glfw.window_should_close(window):
 
+
         # Measuring performance
         perfMonitor.update(glfw.get_time())
         glfw.set_window_title(window, title + str(perfMonitor))
+        deltaTime = perfMonitor.getDeltaTime()
 
         # Using GLFW to check for input events
         glfw.poll_events()
@@ -182,6 +237,22 @@ if __name__ == "__main__":
             np.array([0,0,1])
         )
 
+        # Physics!
+    
+        for ball in balls:
+            # moving each circle
+            Circle.action(np.array([0.0, -1.0, 0.0], dtype=np.float32), deltaTime)
+
+            # checking and processing collisions against the border
+            collideWithBorder(ball)
+
+        # checking and processing collisions among circles
+        if controller.circleCollisions:
+            for i in range(len(balls)):
+                for j in range(i+1, len(balls)):
+                    if areColliding(balls[i], balls[j]):
+                        collide(balls[i], balls[j])
+
         # Clearing the screen in both, color and depth
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
@@ -205,12 +276,18 @@ if __name__ == "__main__":
         glUniformMatrix4fv(glGetUniformLocation(mvpPipeline.shaderProgram, "view"), 1, GL_TRUE, view)
         mvpPipeline.drawCall(gpuAxis, GL_LINES)
 
+        # drawing all the circles
+        for ball in balls:
+            ball.draw()
+
         # Once the drawing is rendered, buffers are swap so an uncomplete drawing is never seen.
         glfw.swap_buffers(window)
 
     # freeing GPU memory
     gpuAxis.clear()
     gpuPoolTable.clear()
+    for ball in balls:
+        ball.gpuShape.clear()
 
     glfw.terminate()
 

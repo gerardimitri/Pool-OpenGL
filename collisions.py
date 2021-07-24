@@ -130,16 +130,17 @@ class Circle:
         # addapting the size of the circle's vertices to have a circle
         # with the desired radius
         scaleFactor = 2 * RADIUS
-        bs.scaleVertices(shape, 6, (scaleFactor, scaleFactor, 1.0))
+        bs.scaleVertices(shape, 8, (scaleFactor, scaleFactor, 1.0))
         self.pipeline = pipeline
         self.gpuShape = createGPUShape(self.pipeline, shape)
         self.position = position
         self.radius = RADIUS
         self.velocity = velocity
 
-    def action(self, gravityAceleration, deltaTime):
+    def action(self, Friction, deltaTime):
         # Euler integration
-        self.velocity += deltaTime * gravityAceleration
+        acceleration=Friction*(self.velocity/np.linalg.norm(self.velocity))*-10
+        self.velocity += deltaTime * acceleration
         self.position += self.velocity * deltaTime
 
     def draw(self):
@@ -158,7 +159,8 @@ def rotate2D(vector, theta):
 
     return np.array([
         cos_theta * vector[0] - sin_theta * vector[1],
-        sin_theta * vector[0] + cos_theta * vector[1]
+        sin_theta * vector[0] + cos_theta * vector[1],
+        0.0
     ], dtype = np.float32)
 
 
@@ -192,8 +194,9 @@ def collide(circle1, circle2):
 
         # swaping the normal components...
         # this means that we applying energy and momentum conservation
-        circle1.velocity = v2n + v1t
-        circle2.velocity = v1n + v2t
+        elastic_velocity=(circle1.velocity+circle2.velocity)/2
+        circle1.velocity = (v2n + v1t)#+elastic_velocity
+        circle2.velocity = (v1n + v2t)#+elastic_velocity
 
 
 def areColliding(circle1, circle2):
@@ -209,18 +212,18 @@ def areColliding(circle1, circle2):
 def collideWithBorder(circle):
 
     # Right
-    if circle.position[0] + circle.radius > 1.0:
+    if circle.position[0] + circle.radius > 11.5:
         circle.velocity[0] = -abs(circle.velocity[0])
 
     # Left
-    if circle.position[0] < -1.0 + circle.radius:
+    if circle.position[0] < -11.5 + circle.radius:
         circle.velocity[0] = abs(circle.velocity[0])
 
     # Top
-    if circle.position[1] > 1.0 - circle.radius:
+    if circle.position[1] > 5.0 - circle.radius:
         circle.velocity[1] = -abs(circle.velocity[1])
 
     # Bottom
-    if circle.position[1] < -1.0 + circle.radius:
+    if circle.position[1] < -5.0 + circle.radius:
         circle.velocity[1] = abs(circle.velocity[1])
 
