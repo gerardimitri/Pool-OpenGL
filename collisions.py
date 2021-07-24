@@ -145,6 +145,9 @@ class Circle:
         self.position += self.velocity * deltaTime
 
     def draw(self):
+        glUniformMatrix4fv(glGetUniformLocation(self.pipeline.shaderProgram, "model"), 1, GL_TRUE, 
+        tr.translate(self.position[0], self.position[1], 0.0)
+        )
         glUniformMatrix4fv(glGetUniformLocation(self.pipeline.shaderProgram, "transform"), 1, GL_TRUE,
             tr.translate(self.position[0], self.position[1], 0.0)
         )

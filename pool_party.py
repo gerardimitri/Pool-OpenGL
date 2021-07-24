@@ -21,16 +21,17 @@ __author__ = "Gerardo Trincado"
 __license__ = "MIT"
 
 CIRCLE_DISCRETIZATION = 20
-RADIUS = 0.08
-WINDOW_WIDTH = 600
-WINDOW_HEIGHT = 600
+RADIUS = 0.4
+SPEED = 12
+FRICTION = 0.2
 
 # A class to store the application control
 class Controller:
     def __init__(self):
         self.fillPolygon = True
-        self.circleCollisions = False
+        self.circleCollisions = True
         self.useGravity = False
+        self.upcam = True
 
 # we will use the global controller as communication with the callback function
 controller = Controller()
@@ -45,58 +46,56 @@ def on_key(window, key, scancode, action, mods):
 
     if key == glfw.KEY_SPACE:
         controller.fillPolygon = not controller.fillPolygon
+    
+    if key == glfw.KEY_UP:
+            balls[0].velocity = np.array([-SPEED*np.sin(camera_theta), -SPEED*np.cos(camera_theta), 0])
+    
+    elif key == glfw.KEY_DOWN:
+        controller.upcam = not controller.upcam
 
     elif key == glfw.KEY_ESCAPE:
         glfw.set_window_should_close(window, True)
 
-# def on_key(window, key, scancode, action, mods):
 
-#     if action != glfw.PRESS:
-#         return
-    
-#     global controller
-
-#     if key == glfw.KEY_SPACE:
-#         controller.fillPolygon = not controller.fillPolygon
-#         print("Fill polygons?", controller.fillPolygon)
-
-#     elif key == glfw.KEY_ESCAPE:
-#         glfw.set_window_should_close(window, True)
-
-#     elif key == glfw.KEY_1:
-#         controller.circleCollisions = not controller.circleCollisions
-#         print("Collisions among circles?", controller.circleCollisions)
-
-#     elif key == glfw.KEY_2:
-#         controller.useGravity = not controller.useGravity
-#         print("Gravity?", controller.useGravity)
-
-#     else:
-#         print('Unknown key')
-
-ball_pos=[np.array([-12, 0, 0]),
-    np.array([10, 0, 0]),
-    np.array([10+np.sqrt(3)*RADIUS, RADIUS, 0]),
-    np.array([10+np.sqrt(3)*RADIUS, -RADIUS, 0]),
-    np.array([10+2*np.sqrt(3)*RADIUS, 0, 0]),
-    np.array([10+2*np.sqrt(3)*RADIUS, 2*RADIUS, 0]),
-    np.array([10+2*np.sqrt(3)*RADIUS, -2*RADIUS, 0]),
-    np.array([10+3*np.sqrt(3)*RADIUS, RADIUS, 0]),
-    np.array([10+3*np.sqrt(3)*RADIUS, -RADIUS, 0]),
-    np.array([10+3*np.sqrt(3)*RADIUS, 3*RADIUS, 0]),
-    np.array([10+3*np.sqrt(3)*RADIUS, -3*RADIUS, 0]),
-    np.array([10+4*np.sqrt(3)*RADIUS, 0, 0]),
-    np.array([10+4*np.sqrt(3)*RADIUS, 2*RADIUS, 0]),
-    np.array([10+4*np.sqrt(3)*RADIUS, -2*RADIUS, 0]),
-    np.array([10+4*np.sqrt(3)*RADIUS, 4*RADIUS, 0]),
-    np.array([10+4*np.sqrt(3)*RADIUS, -4*RADIUS, 0]),
+ball_pos=[np.array([8, 0, 0], dtype=np.float32),
+    np.array([-5, 0, 0], dtype=np.float32),
+    np.array([-5-np.sqrt(3)*RADIUS, RADIUS, 0], dtype=np.float32),
+    np.array([-5-np.sqrt(3)*RADIUS, -RADIUS, 0], dtype=np.float32),
+    np.array([-5-2*np.sqrt(3)*RADIUS, 0, 0], dtype=np.float32),
+    np.array([-5-2*np.sqrt(3)*RADIUS, 2*RADIUS, 0], dtype=np.float32),
+    np.array([-5-2*np.sqrt(3)*RADIUS, -2*RADIUS, 0], dtype=np.float32),
+    np.array([-5-3*np.sqrt(3)*RADIUS, RADIUS, 0], dtype=np.float32),
+    np.array([-5-3*np.sqrt(3)*RADIUS, -RADIUS, 0], dtype=np.float32),
+    np.array([-5-3*np.sqrt(3)*RADIUS, 3*RADIUS, 0], dtype=np.float32),
+    np.array([-5-3*np.sqrt(3)*RADIUS, -3*RADIUS, 0], dtype=np.float32),
+    np.array([-5-4*np.sqrt(3)*RADIUS, 0, 0], dtype=np.float32),
+    np.array([-5-4*np.sqrt(3)*RADIUS, 2*RADIUS, 0], dtype=np.float32),
+    np.array([-5-4*np.sqrt(3)*RADIUS, -2*RADIUS, 0], dtype=np.float32),
+    np.array([-5-4*np.sqrt(3)*RADIUS, 4*RADIUS, 0], dtype=np.float32),
+    np.array([-5-4*np.sqrt(3)*RADIUS, -4*RADIUS, 0], dtype=np.float32),
     ]
 
 ball_rgb =[]
+counter_red=0
+counter_yellow=0
 for i in range(16):
-    ball_rgb.append([1,1,1])
-
-
+    color_id=random.randint(0,1)
+    if i ==0:
+        ball_rgb.append(np.array([1,1,1]))
+    elif i ==4:
+        ball_rgb.append(np.array([0.1,0.1,0.1]))
+    elif counter_red<7 and color_id==0:
+        ball_rgb.append(np.array([1,0,0]))
+        counter_red+=1
+    elif counter_yellow<7 and color_id==1:
+        ball_rgb.append(np.array([1,1,0]))
+        counter_yellow+=1
+    elif counter_red<7:
+        ball_rgb.append(np.array([1,0,0]))
+        counter_red+=1
+    else:
+        ball_rgb.append(np.array([1,1,0]))
+        counter_yellow+=1
 
 if __name__ == "__main__":
 
@@ -106,7 +105,7 @@ if __name__ == "__main__":
 
     width = 600
     height = 600
-    title = "Reading a *.obj file"
+    title = "Pool Party"
     window = glfw.create_window(width, height, title, None, None)
 
     if not window:
@@ -121,6 +120,7 @@ if __name__ == "__main__":
     # Defining shader programs
     pipeline = ls.SimpleGouraudShaderProgram()
     phongPipeline = ls.SimpleTexturePhongShaderProgram()
+    rgbPhongPipeline = ls.SimplePhongShaderProgram()
     mvpPipeline = es.SimpleModelViewProjectionShaderProgram()
 
     # Telling OpenGL to use our shader program
@@ -143,18 +143,19 @@ if __name__ == "__main__":
     # Creating shapes on GPU memory
     gpuAxis = createGPUShape(mvpPipeline, bs.createAxis(7))
 
-    shapePoolTable = readOBJ('pool_table2.obj')
+    shapePoolTable = readOBJ('assets/pool_table.obj')
     gpuPoolTable = createGPUShape(phongPipeline, shapePoolTable)
-    gpuPoolTable.texture = es.textureSimpleSetup('pool_table.jpg', GL_REPEAT, GL_REPEAT, GL_LINEAR, GL_LINEAR)
+    gpuPoolTable.texture = es.textureSimpleSetup('assets/pool_table.jpg', GL_REPEAT, GL_REPEAT, GL_LINEAR, GL_LINEAR)
 
 
     # Setting uniforms that will NOT change on each iteration
+    
     glUseProgram(phongPipeline.shaderProgram)
     glUniform3f(glGetUniformLocation(phongPipeline.shaderProgram, "La"), 1.0, 1.0, 1.0)
     glUniform3f(glGetUniformLocation(phongPipeline.shaderProgram, "Ld"), 1.0, 1.0, 1.0)
     glUniform3f(glGetUniformLocation(phongPipeline.shaderProgram, "Ls"), 1.0, 1.0, 1.0)
 
-    glUniform3f(glGetUniformLocation(phongPipeline.shaderProgram, "Ka"), 0.2, 0.2, 0.2)
+    glUniform3f(glGetUniformLocation(phongPipeline.shaderProgram, "Ka"), 0.4, 0.4, 0.4)
     glUniform3f(glGetUniformLocation(phongPipeline.shaderProgram, "Kd"), 0.9, 0.9, 0.9)
     glUniform3f(glGetUniformLocation(phongPipeline.shaderProgram, "Ks"), 1.0, 1.0, 1.0)
 
@@ -178,6 +179,27 @@ if __name__ == "__main__":
 
     perfMonitor = pm.PerformanceMonitor(glfw.get_time(), 0.5)
 
+    #Pelotas, seteamos el shader
+    glUseProgram(rgbPhongPipeline.shaderProgram)
+    glUniform3f(glGetUniformLocation(rgbPhongPipeline.shaderProgram, "La"), 1.0, 1.0, 1.0)
+    glUniform3f(glGetUniformLocation(rgbPhongPipeline.shaderProgram, "Ld"), 1.0, 1.0, 1.0)
+    glUniform3f(glGetUniformLocation(rgbPhongPipeline.shaderProgram, "Ls"), 1.0, 1.0, 1.0)
+
+    glUniform3f(glGetUniformLocation(rgbPhongPipeline.shaderProgram, "Ka"), 0.6, 0.6, 0.6)
+    glUniform3f(glGetUniformLocation(rgbPhongPipeline.shaderProgram, "Kd"), 0.8, 0.8, 0.8)
+    glUniform3f(glGetUniformLocation(rgbPhongPipeline.shaderProgram, "Ks"), 1.0, 1.0, 1.0)
+
+    glUniform3f(glGetUniformLocation(rgbPhongPipeline.shaderProgram, "lightPosition"), 0, 0, 20)
+    
+    glUniform1ui(glGetUniformLocation(rgbPhongPipeline.shaderProgram, "shininess"), 100)
+    glUniform1f(glGetUniformLocation(rgbPhongPipeline.shaderProgram, "constantAttenuation"), 0.001)
+    glUniform1f(glGetUniformLocation(rgbPhongPipeline.shaderProgram, "linearAttenuation"), 0.1)
+    glUniform1f(glGetUniformLocation(rgbPhongPipeline.shaderProgram, "quadraticAttenuation"), 0.01)
+
+    # Setting up the projection transform
+    projection = tr.perspective(60, float(width)/float(height), 0.1, 100)
+    glUniformMatrix4fv(glGetUniformLocation(rgbPhongPipeline.shaderProgram, "projection"), 1, GL_TRUE, projection)
+
 
     #balls
     # Creating shapes on GPU memory
@@ -189,17 +211,12 @@ if __name__ == "__main__":
             0.0,
             0.0
         ])
-        r, g, b = ball_rgb[i]
-        ball = Circle(pipeline, position, velocity, r, g, b)
+        r, g, b = ball_rgb[i][0], ball_rgb[i][1], ball_rgb[i][2]
+        ball = Circle(rgbPhongPipeline, position, velocity, r, g, b)
         balls += [ball]
 
     perfMonitor = pm.PerformanceMonitor(glfw.get_time(), 0.5)
 
-    # glfw will swap buffers as soon as possible
-    glfw.swap_interval(0)
-
-    gravityAcceleration = np.array([0.0, -1.0], dtype=np.float32)
-    noGravityAcceleration = np.array([0.0, 0.0], dtype=np.float32)
 
     # glfw will swap buffers as soon as possible
     glfw.swap_interval(0)
@@ -219,30 +236,11 @@ if __name__ == "__main__":
         t1 = glfw.get_time()
         dt = t1 - t0
         t0 = t1
-
-        if (glfw.get_key(window, glfw.KEY_LEFT) == glfw.PRESS):
-            camera_theta -= 2 * dt
-
-        if (glfw.get_key(window, glfw.KEY_RIGHT) == glfw.PRESS):
-            camera_theta += 2* dt
-
-        # Setting up the view transform
-        R = 20
-        camX = R * np.sin(camera_theta)
-        camY = R * np.cos(camera_theta)
-        viewPos = np.array([camX, camY, 20])
-        view = tr.lookAt(
-            viewPos,
-            np.array([0,0,1]),
-            np.array([0,0,1])
-        )
-
+        
         # Physics!
-    
         for ball in balls:
             # moving each circle
-            Circle.action(np.array([0.0, -1.0, 0.0], dtype=np.float32), deltaTime)
-
+            ball.action(FRICTION, deltaTime)
             # checking and processing collisions against the border
             collideWithBorder(ball)
 
@@ -253,6 +251,36 @@ if __name__ == "__main__":
                     if areColliding(balls[i], balls[j]):
                         collide(balls[i], balls[j])
 
+        #Camera Setup
+        if (glfw.get_key(window, glfw.KEY_LEFT) == glfw.PRESS):
+            camera_theta -= 2 * dt
+
+        if (glfw.get_key(window, glfw.KEY_RIGHT) == glfw.PRESS):
+            camera_theta += 2* dt
+
+        # Setting up the view transform
+        if controller.upcam:
+            R = 20
+            camX = R * np.sin(camera_theta)
+            camY = R * np.cos(camera_theta)
+            viewPos = np.array([camX, camY, 20])
+            viewAt = np.array([0,0,0])
+        else:
+            R = 5
+            camX = balls[0].position[0] + R * np.sin(camera_theta)
+            camY = balls[0].position[1] + R * np.cos(camera_theta)
+            viewPos = np.array([camX, camY, 2])
+            viewAt = np.array([balls[0].position[0], balls[0].position[1], 0])
+
+            
+        view = tr.lookAt(
+            viewPos,
+            viewAt,
+            np.array([0,0,1])
+        )
+
+        
+
         # Clearing the screen in both, color and depth
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
@@ -261,6 +289,8 @@ if __name__ == "__main__":
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
         else:
             glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
+
+        
 
         # Drawing shapes
         glUseProgram(phongPipeline.shaderProgram)
@@ -276,9 +306,13 @@ if __name__ == "__main__":
         glUniformMatrix4fv(glGetUniformLocation(mvpPipeline.shaderProgram, "view"), 1, GL_TRUE, view)
         mvpPipeline.drawCall(gpuAxis, GL_LINES)
 
+        glUseProgram(rgbPhongPipeline.shaderProgram)
+        glUniform3f(glGetUniformLocation(rgbPhongPipeline.shaderProgram, "viewPosition"), viewPos[0], viewPos[1], viewPos[2])
+        glUniformMatrix4fv(glGetUniformLocation(rgbPhongPipeline.shaderProgram, "view"), 1, GL_TRUE, view)
         # drawing all the circles
         for ball in balls:
             ball.draw()
+
 
         # Once the drawing is rendered, buffers are swap so an uncomplete drawing is never seen.
         glfw.swap_buffers(window)
