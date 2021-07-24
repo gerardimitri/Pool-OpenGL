@@ -15,9 +15,7 @@ from grafica.assets_path import getAssetPath
 
 NUMBER_OF_CIRCLES = 10
 CIRCLE_DISCRETIZATION = 20
-RADIUS = 0.08
-WINDOW_WIDTH = 600
-WINDOW_HEIGHT = 600
+RADIUS = 0.5
 
 def createGPUShape(pipeline, shape):
      # Funcion Conveniente para facilitar la inicializacion de un GPUShape
@@ -139,7 +137,10 @@ class Circle:
 
     def action(self, Friction, deltaTime):
         # Euler integration
-        acceleration=Friction*(self.velocity/np.linalg.norm(self.velocity))*-10
+        if np.linalg.norm(self.velocity)==0:
+            acceleration=Friction*(self.velocity)*-10
+        else:
+            acceleration=Friction*(self.velocity/np.linalg.norm(self.velocity))*-10
         self.velocity += deltaTime * acceleration
         self.position += self.velocity * deltaTime
 
