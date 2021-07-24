@@ -50,7 +50,7 @@ def on_key(window, key, scancode, action, mods):
     if key == glfw.KEY_UP:
             balls[0].velocity = np.array([-SPEED*np.sin(camera_theta), -SPEED*np.cos(camera_theta), 0])
     
-    elif key == glfw.KEY_DOWN:
+    elif key == glfw.KEY_1:
         controller.upcam = not controller.upcam
 
     elif key == glfw.KEY_ESCAPE:
@@ -204,6 +204,7 @@ if __name__ == "__main__":
     #balls
     # Creating shapes on GPU memory
     balls = []
+    draw_balls = []
     for i in range(16):
         position = ball_pos[i]
         velocity = np.array([
@@ -214,6 +215,8 @@ if __name__ == "__main__":
         r, g, b = ball_rgb[i][0], ball_rgb[i][1], ball_rgb[i][2]
         ball = Circle(rgbPhongPipeline, position, velocity, r, g, b)
         balls += [ball]
+
+        draw_balls.append(True)
 
     perfMonitor = pm.PerformanceMonitor(glfw.get_time(), 0.5)
 
@@ -310,8 +313,10 @@ if __name__ == "__main__":
         glUniform3f(glGetUniformLocation(rgbPhongPipeline.shaderProgram, "viewPosition"), viewPos[0], viewPos[1], viewPos[2])
         glUniformMatrix4fv(glGetUniformLocation(rgbPhongPipeline.shaderProgram, "view"), 1, GL_TRUE, view)
         # drawing all the circles
-        for ball in balls:
-            ball.draw()
+        for i in range(len(balls)):
+            ball=balls[i]
+            if draw_balls[i]:
+                ball.draw()
 
 
         # Once the drawing is rendered, buffers are swap so an uncomplete drawing is never seen.
