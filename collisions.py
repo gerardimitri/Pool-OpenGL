@@ -13,9 +13,9 @@ import grafica.lighting_shaders as ls
 import grafica.performance_monitor as pm
 from grafica.assets_path import getAssetPath
 
-NUMBER_OF_CIRCLES = 10
-CIRCLE_DISCRETIZATION = 20
-RADIUS = 0.5
+NUMBER_OF_BALLS = 10
+BALL_DISCRETIZATION = 20
+RADIUS = 0.4
 
 def createGPUShape(pipeline, shape):
      # Funcion Conveniente para facilitar la inicializacion de un GPUShape
@@ -33,14 +33,13 @@ def createTextureGPUShape(shape, pipeline, path):
         path, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_NEAREST, GL_NEAREST)
     return gpuShape
 
-def createColorNormalSphere(N, r, g, b):
+def createColorNormalSphere(N, r, g, b, rho=RADIUS):
     # Funcion para crear una esfera con normales
 
     vertices = []           # lista para almacenar los verices
     indices = []            # lista para almacenar los indices
     dTheta = 2 * np.pi /N   # angulo que hay entre cada iteracion de la coordenada theta
     dPhi = 2 * np.pi /N     # angulo que hay entre cada iteracion de la coordenada phi
-    rho = 0.5               # radio de la esfera
     c = 0                   # contador de vertices, para ayudar a indicar los indices
 
     # Se recorre la coordenada theta
@@ -122,18 +121,19 @@ def createColorNormalSphere(N, r, g, b):
                 c += 4
     return bs.Shape(vertices, indices)
 
-class Circle:
+class Ball:
     def __init__(self, pipeline, position, velocity, r, g, b):
-        shape = createColorNormalSphere(CIRCLE_DISCRETIZATION, r, g, b)
-        # addapting the size of the circle's vertices to have a circle
+        shape = createColorNormalSphere(BALL_DISCRETIZATION, r, g, b)
+        # addapting the size of the ball's vertices to have a ball
         # with the desired radius
         scaleFactor = 2 * RADIUS
-        bs.scaleVertices(shape, 8, (scaleFactor, scaleFactor, 1.0))
+        bs.scaleVertices(shape, 9, (scaleFactor, scaleFactor, scaleFactor))
         self.pipeline = pipeline
         self.gpuShape = createGPUShape(self.pipeline, shape)
         self.position = position
         self.radius = RADIUS
         self.velocity = velocity
+        self.exists = True
 
     def action(self, Friction, deltaTime):
         # Euler integration
@@ -168,66 +168,79 @@ def rotate2D(vector, theta):
     ], dtype = np.float32)
 
 
-def collide(circle1, circle2):
+def collide(ball1, ball2):
     """
-    If there are a collision between the circles, it modifies the velocity of
-    both circles in a way that preserves energy and momentum.
+    If there are a collision between the balls, it modifies the velocity of
+    both balls in a way that preserves energy and momentum.
     """
     
-    assert isinstance(circle1, Circle)
-    assert isinstance(circle2, Circle)
+    assert isinstance(ball1, Ball)
+    assert isinstance(ball2, Ball)
 
-    normal = circle2.position - circle1.position
+    normal = ball2.position - ball1.position
     normal /= np.linalg.norm(normal)
 
-    circle1MovingToNormal = np.dot(circle2.velocity, normal) > 0.0
-    circle2MovingToNormal = np.dot(circle1.velocity, normal) < 0.0
+    ball1MovingToNormal = np.dot(ball2.velocity, normal) > 0.0
+    ball2MovingToNormal = np.dot(ball1.velocity, normal) < 0.0
 
-    if not (circle1MovingToNormal and circle2MovingToNormal):
+    if not (ball1MovingToNormal and ball2MovingToNormal):
 
         # obtaining the tangent direction
         tangent = rotate2D(normal, np.pi/2.0)
 
         # Projecting the velocity vector over the normal and tangent directions
-        # for both circles, 1 and 2.
-        v1n = np.dot(circle1.velocity, normal) * normal
-        v1t = np.dot(circle1.velocity, tangent) * tangent
+        # for both balls, 1 and 2.
+        v1n = np.dot(ball1.velocity, normal) * normal
+        v1t = np.dot(ball1.velocity, tangent) * tangent
 
-        v2n = np.dot(circle2.velocity, normal) * normal
-        v2t = np.dot(circle2.velocity, tangent) * tangent
+        v2n = np.dot(ball2.velocity, normal) * normal
+        v2t = np.dot(ball2.velocity, tangent) * tangent
 
         # swaping the normal components...
         # this means that we applying energy and momentum conservation
-        elastic_velocity=(circle1.velocity+circle2.velocity)/2
-        circle1.velocity = (v2n + v1t)#+elastic_velocity
-        circle2.velocity = (v1n + v2t)#+elastic_velocity
+        elastic_velocity=(ball1.velocity+ball2.velocity)/2
+        ball1.velocity = (v2n + v1t)#+elastic_velocity
+        ball2.velocity = (v1n + v2t)#+elastic_velocity
 
 
-def areColliding(circle1, circle2):
-    assert isinstance(circle1, Circle)
-    assert isinstance(circle2, Circle)
+def areColliding(ball1, ball2):
+    assert isinstance(ball1, Ball)
+    assert isinstance(ball2, Ball)
 
-    difference = circle2.position - circle1.position
+    difference = ball2.position - ball1.position
     distance = np.linalg.norm(difference)
-    collisionDistance = circle2.radius + circle1.radius
+    collisionDistance = ball2.radius + ball1.radius
     return distance < collisionDistance
 
 
-def collideWithBorder(circle):
+def collideWithBorder(ball):
+    hole_radius = 0.55
+    holes=[
+        np.array([11.5, 5.0, 0],),
+        np.array([11.5, -5.0, 0],),
+        np.array([-11.5, 5.0, 0],),
+        np.array([-11.5, -5.0, 0],),
+        np.array([0, 5.0, 0],),
+        np.array([0, -5.0, 0],)
+    ]
+
+    for hole in holes:
+        if abs(ball.position[0]-hole[0])<hole_radius and abs(ball.position[1]-hole[1])<hole_radius:
+            ball.exists=False
 
     # Right
-    if circle.position[0] + circle.radius > 11.5:
-        circle.velocity[0] = -abs(circle.velocity[0])
+    if ball.position[0] + ball.radius > 11.5:
+        ball.velocity[0] = -abs(ball.velocity[0])
 
     # Left
-    if circle.position[0] < -11.5 + circle.radius:
-        circle.velocity[0] = abs(circle.velocity[0])
+    if ball.position[0] < -11.5 + ball.radius:
+        ball.velocity[0] = abs(ball.velocity[0])
 
     # Top
-    if circle.position[1] > 5.0 - circle.radius:
-        circle.velocity[1] = -abs(circle.velocity[1])
+    if ball.position[1] > 5.0 - ball.radius:
+        ball.velocity[1] = -abs(ball.velocity[1])
 
     # Bottom
-    if circle.position[1] < -5.0 + circle.radius:
-        circle.velocity[1] = abs(circle.velocity[1])
+    if ball.position[1] < -5.0 + ball.radius:
+        ball.velocity[1] = abs(ball.velocity[1])
 

@@ -20,8 +20,6 @@ from collisions import *
 __author__ = "Gerardo Trincado"
 __license__ = "MIT"
 
-CIRCLE_DISCRETIZATION = 20
-RADIUS = 0.4
 SPEED = 12
 FRICTION = 0.2
 
@@ -29,7 +27,7 @@ FRICTION = 0.2
 class Controller:
     def __init__(self):
         self.fillPolygon = True
-        self.circleCollisions = True
+        self.ballCollisions = True
         self.useGravity = False
         self.upcam = True
 
@@ -56,23 +54,23 @@ def on_key(window, key, scancode, action, mods):
     elif key == glfw.KEY_ESCAPE:
         glfw.set_window_should_close(window, True)
 
-
+ball_radius = 0.31
 ball_pos=[np.array([8, 0, 0], dtype=np.float32),
     np.array([-5, 0, 0], dtype=np.float32),
-    np.array([-5-np.sqrt(3)*RADIUS, RADIUS, 0], dtype=np.float32),
-    np.array([-5-np.sqrt(3)*RADIUS, -RADIUS, 0], dtype=np.float32),
-    np.array([-5-2*np.sqrt(3)*RADIUS, 0, 0], dtype=np.float32),
-    np.array([-5-2*np.sqrt(3)*RADIUS, 2*RADIUS, 0], dtype=np.float32),
-    np.array([-5-2*np.sqrt(3)*RADIUS, -2*RADIUS, 0], dtype=np.float32),
-    np.array([-5-3*np.sqrt(3)*RADIUS, RADIUS, 0], dtype=np.float32),
-    np.array([-5-3*np.sqrt(3)*RADIUS, -RADIUS, 0], dtype=np.float32),
-    np.array([-5-3*np.sqrt(3)*RADIUS, 3*RADIUS, 0], dtype=np.float32),
-    np.array([-5-3*np.sqrt(3)*RADIUS, -3*RADIUS, 0], dtype=np.float32),
-    np.array([-5-4*np.sqrt(3)*RADIUS, 0, 0], dtype=np.float32),
-    np.array([-5-4*np.sqrt(3)*RADIUS, 2*RADIUS, 0], dtype=np.float32),
-    np.array([-5-4*np.sqrt(3)*RADIUS, -2*RADIUS, 0], dtype=np.float32),
-    np.array([-5-4*np.sqrt(3)*RADIUS, 4*RADIUS, 0], dtype=np.float32),
-    np.array([-5-4*np.sqrt(3)*RADIUS, -4*RADIUS, 0], dtype=np.float32),
+    np.array([-5-np.sqrt(3)*ball_radius, ball_radius, 0], dtype=np.float32),
+    np.array([-5-np.sqrt(3)*ball_radius, -ball_radius, 0], dtype=np.float32),
+    np.array([-5-2*np.sqrt(3)*ball_radius, 0, 0], dtype=np.float32),
+    np.array([-5-2*np.sqrt(3)*ball_radius, 2*ball_radius, 0], dtype=np.float32),
+    np.array([-5-2*np.sqrt(3)*ball_radius, -2*ball_radius, 0], dtype=np.float32),
+    np.array([-5-3*np.sqrt(3)*ball_radius, ball_radius, 0], dtype=np.float32),
+    np.array([-5-3*np.sqrt(3)*ball_radius, -ball_radius, 0], dtype=np.float32),
+    np.array([-5-3*np.sqrt(3)*ball_radius, 3*ball_radius, 0], dtype=np.float32),
+    np.array([-5-3*np.sqrt(3)*ball_radius, -3*ball_radius, 0], dtype=np.float32),
+    np.array([-5-4*np.sqrt(3)*ball_radius, 0, 0], dtype=np.float32),
+    np.array([-5-4*np.sqrt(3)*ball_radius, 2*ball_radius, 0], dtype=np.float32),
+    np.array([-5-4*np.sqrt(3)*ball_radius, -2*ball_radius, 0], dtype=np.float32),
+    np.array([-5-4*np.sqrt(3)*ball_radius, 4*ball_radius, 0], dtype=np.float32),
+    np.array([-5-4*np.sqrt(3)*ball_radius, -4*ball_radius, 0], dtype=np.float32),
     ]
 
 ball_rgb =[]
@@ -204,7 +202,6 @@ if __name__ == "__main__":
     #balls
     # Creating shapes on GPU memory
     balls = []
-    draw_balls = []
     for i in range(16):
         position = ball_pos[i]
         velocity = np.array([
@@ -213,10 +210,9 @@ if __name__ == "__main__":
             0.0
         ])
         r, g, b = ball_rgb[i][0], ball_rgb[i][1], ball_rgb[i][2]
-        ball = Circle(rgbPhongPipeline, position, velocity, r, g, b)
+        ball = Ball(rgbPhongPipeline, position, velocity, r, g, b)
         balls += [ball]
 
-        draw_balls.append(True)
 
     perfMonitor = pm.PerformanceMonitor(glfw.get_time(), 0.5)
 
@@ -242,13 +238,13 @@ if __name__ == "__main__":
         
         # Physics!
         for ball in balls:
-            # moving each circle
+            # moving each ball
             ball.action(FRICTION, deltaTime)
             # checking and processing collisions against the border
             collideWithBorder(ball)
 
-        # checking and processing collisions among circles
-        if controller.circleCollisions:
+        # checking and processing collisions among balls
+        if controller.ballCollisions:
             for i in range(len(balls)):
                 for j in range(i+1, len(balls)):
                     if areColliding(balls[i], balls[j]):
@@ -312,11 +308,12 @@ if __name__ == "__main__":
         glUseProgram(rgbPhongPipeline.shaderProgram)
         glUniform3f(glGetUniformLocation(rgbPhongPipeline.shaderProgram, "viewPosition"), viewPos[0], viewPos[1], viewPos[2])
         glUniformMatrix4fv(glGetUniformLocation(rgbPhongPipeline.shaderProgram, "view"), 1, GL_TRUE, view)
-        # drawing all the circles
-        for i in range(len(balls)):
-            ball=balls[i]
-            if draw_balls[i]:
+        # drawing all the balls
+        for ball in balls:
+            if ball.exists:
                 ball.draw()
+            else:
+                balls.remove(ball)
 
 
         # Once the drawing is rendered, buffers are swap so an uncomplete drawing is never seen.
