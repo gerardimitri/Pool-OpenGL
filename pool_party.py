@@ -45,8 +45,8 @@ def on_key(window, key, scancode, action, mods):
     if key == glfw.KEY_SPACE:
         controller.fillPolygon = not controller.fillPolygon
     
-    if key == glfw.KEY_UP:
-            balls[0].velocity = np.array([-SPEED*np.sin(camera_theta), -SPEED*np.cos(camera_theta), 0])
+    if key == glfw.KEY_UP and np.linalg.norm(balls[0].velocity)<0.001:
+        balls[0].velocity = np.array([-SPEED*np.sin(camera_theta), -SPEED*np.cos(camera_theta), 0])
     
     elif key == glfw.KEY_1:
         controller.upcam = not controller.upcam
@@ -146,6 +146,11 @@ if __name__ == "__main__":
     gpuPoolTable.texture = es.textureSimpleSetup('assets/pool_table.jpg', GL_REPEAT, GL_REPEAT, GL_LINEAR, GL_LINEAR)
 
 
+    shapePoolCue = readOBJ('assets/pool_cue.obj')
+    gpuPoolCue = createGPUShape(phongPipeline, shapePoolCue)
+    gpuPoolCue.texture = es.textureSimpleSetup('assets/pool_cue.jpg', GL_REPEAT, GL_REPEAT, GL_LINEAR, GL_LINEAR)
+
+
     # Setting uniforms that will NOT change on each iteration
     
     glUseProgram(phongPipeline.shaderProgram)
@@ -213,6 +218,8 @@ if __name__ == "__main__":
         ball = Ball(rgbPhongPipeline, position, velocity, r, g, b)
         balls += [ball]
 
+    #cue
+    draw_cue=[False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False]
 
     perfMonitor = pm.PerformanceMonitor(glfw.get_time(), 0.5)
 
@@ -300,6 +307,26 @@ if __name__ == "__main__":
             tr.translate(0,0,-7.5),tr.uniformScale(0.1)]))
         phongPipeline.drawCall(gpuPoolTable)
 
+
+        for i in range(len(balls)):
+            if np.linalg.norm(balls[i].velocity) <0.001:
+                draw_cue[i] = True
+            else:
+                draw_cue[i] = False
+
+        if False not in draw_cue:
+            cue_delta = 16.5
+            cue_pos=balls[0].position
+            cueX = cue_pos[0] + cue_delta * np.sin(camera_theta)
+            cueY = cue_pos[1] + cue_delta * np.cos(camera_theta)
+            cueZ = cue_pos[2]
+            glUniformMatrix4fv(glGetUniformLocation(phongPipeline.shaderProgram, "model"), 1, GL_TRUE, tr.matmul([
+                tr.translate(cueX, cueY, cueZ),
+                tr.rotationZ(-camera_theta),
+                tr.rotationX(np.pi/2-0.02),
+                tr.uniformScale(0.1)]))
+            phongPipeline.drawCall(gpuPoolCue)
+
         
         glUseProgram(mvpPipeline.shaderProgram)
         glUniformMatrix4fv(glGetUniformLocation(mvpPipeline.shaderProgram, "view"), 1, GL_TRUE, view)
@@ -314,6 +341,7 @@ if __name__ == "__main__":
                 ball.draw()
             else:
                 balls.remove(ball)
+                draw_cue.pop(0)
 
 
         # Once the drawing is rendered, buffers are swap so an uncomplete drawing is never seen.

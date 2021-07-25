@@ -137,6 +137,8 @@ class Ball:
 
     def action(self, Friction, deltaTime):
         # Euler integration
+        if np.linalg.norm(self.velocity)<0.001:
+            self.velocity = np.array([0.0, 0.0, 0.0])
         if np.linalg.norm(self.velocity)==0:
             acceleration=Friction*(self.velocity)*-10
         else:
