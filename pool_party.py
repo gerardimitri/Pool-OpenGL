@@ -7,7 +7,7 @@ __author__ = "Gerardo Trincado"
 __license__ = "MIT"
 
 SPEED = 12
-FRICTION = 0.2
+move_ball=[False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False]
 
 # A class to store the application control
 class Controller:
@@ -15,7 +15,7 @@ class Controller:
         self.fillPolygon = True
         self.ballCollisions = True
         self.useGravity = False
-        self.upcam = True
+        self.upcam = 0
 
 # we will use the global controller as communication with the callback function
 controller = Controller()
@@ -31,11 +31,25 @@ def on_key(window, key, scancode, action, mods):
     if key == glfw.KEY_SPACE:
         controller.fillPolygon = not controller.fillPolygon
     
-    if key == glfw.KEY_UP and np.linalg.norm(balls[0].velocity)<0.001:
-        balls[0].velocity = np.array([-SPEED*np.sin(camera_theta), -SPEED*np.cos(camera_theta), 0])
+    if key == glfw.KEY_UP:
+        for i in range(len(balls)):
+            ball=balls[i]
+            if np.linalg.norm(ball.velocity)<0.1:
+                move_ball[i] = True
+            else:
+                move_ball[i] = False
+        
+        if False not in move_ball:
+            balls[0].velocity = np.array([-SPEED*np.sin(camera_theta), -SPEED*np.cos(camera_theta), 0])
     
     elif key == glfw.KEY_1:
-        controller.upcam = not controller.upcam
+        controller.upcam = 0
+
+    elif key == glfw.KEY_2:
+        controller.upcam = 1
+
+    elif key == glfw.KEY_3:
+        controller.upcam = 2
 
     elif key == glfw.KEY_ESCAPE:
         glfw.set_window_should_close(window, True)
@@ -82,18 +96,21 @@ for i in range(16):
         counter_yellow+=1
 
 if __name__ == "__main__":
-    #jason = float(sys.argv[1])
-    jason = 'config.json'
+    jason = str(sys.argv[1])
+    #jason = 'config.json'
     jason_file = open (jason, "r")
     jason_dic = json.loads(jason_file.read())[0]
-    print(jason_dic)
+    #print(jason_dic)
+
+    FRICTION = jason_dic['friction']
+    RESTITUTION = jason_dic['restitution']
 
     # Initialize glfw
     if not glfw.init():
         glfw.set_window_should_close(window, True)
 
-    width = 600
-    height = 600
+    width = 1280
+    height = 720
     title = "Pool Party"
     window = glfw.create_window(width, height, title, None, None)
 
@@ -269,24 +286,33 @@ if __name__ == "__main__":
             camera_theta += 2* dt
 
         # Setting up the view transform
-        if controller.upcam:
+        if controller.upcam == 0:
+            camX = 0
+            camY = 0
+            viewPos = np.array([camX, camY, 20])
+            viewAt = np.array([0,0,0])
+            viewUp = np.array([0,1,0])
+
+        elif controller.upcam == 1:
             R = 20
             camX = R * np.sin(camera_theta)
             camY = R * np.cos(camera_theta)
             viewPos = np.array([camX, camY, 20])
             viewAt = np.array([0,0,0])
+            viewUp = np.array([0,0,1])
         else:
             R = 5
             camX = balls[0].position[0] + R * np.sin(camera_theta)
             camY = balls[0].position[1] + R * np.cos(camera_theta)
             viewPos = np.array([camX, camY, 2])
             viewAt = np.array([balls[0].position[0], balls[0].position[1], 0])
+            viewUp = np.array([0,0,1])
 
             
         view = tr.lookAt(
             viewPos,
             viewAt,
-            np.array([0,0,1])
+            viewUp
         )
 
         
@@ -314,7 +340,7 @@ if __name__ == "__main__":
         phongPipeline.drawCall(gpuPoolTable)
 
         for i in range(len(balls)):
-            if np.linalg.norm(balls[i].velocity) <0.001:
+            if np.linalg.norm(balls[i].velocity) <0.02:
                 draw_cue[i] = True
             else:
                 draw_cue[i] = False
@@ -347,7 +373,7 @@ if __name__ == "__main__":
         glUniformMatrix4fv(glGetUniformLocation(textureShaderProgram.shaderProgram, "view"), 1, GL_TRUE, view)
         sg.drawSceneGraphNode(skybox, textureShaderProgram, "model")
 
-        if False not in draw_cue and controller.upcam:
+        if False not in draw_cue and controller.upcam < 2:
             arrow_delta = 1.5
             arrow_pos=balls[0].position
             arrowX = arrow_pos[0] - arrow_delta * np.sin(camera_theta)
@@ -359,7 +385,7 @@ if __name__ == "__main__":
                     tr.scale(3,1,1)]))
             textureShaderProgram.drawCall(gpuArrow)
             
-        elif False not in draw_cue and not controller.upcam:
+        elif False not in draw_cue and controller.upcam > 1:
             arrow_delta = 3.5
             arrow_pos=balls[0].position
             arrowX = arrow_pos[0] - arrow_delta * np.sin(camera_theta)
@@ -386,6 +412,7 @@ if __name__ == "__main__":
             else:
                 balls.remove(ball)
                 draw_cue.pop(0)
+                move_ball.pop(0)
 
         #Once the drawing is rendered, buffers are swap so an uncomplete drawing is never seen.
         glfw.swap_buffers(window)
