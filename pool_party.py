@@ -76,19 +76,13 @@ ball_pos=[np.array([8, 0, 0], dtype=np.float32),
 ball_rgb =[]
 counter_red=0
 counter_yellow=0
+red_pos=np.array([1,3,5,7,10,13,14])
 for i in range(16):
-    color_id=random.randint(0,1)
     if i ==0:
         ball_rgb.append(np.array([1,1,1]))
     elif i ==4:
         ball_rgb.append(np.array([0.1,0.1,0.1]))
-    elif counter_red<7 and color_id==0:
-        ball_rgb.append(np.array([1,0,0]))
-        counter_red+=1
-    elif counter_yellow<7 and color_id==1:
-        ball_rgb.append(np.array([1,1,0]))
-        counter_yellow+=1
-    elif counter_red<7:
+    elif counter_red<7 and i in red_pos:
         ball_rgb.append(np.array([1,0,0]))
         counter_red+=1
     else:
