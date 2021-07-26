@@ -1,21 +1,7 @@
-import glfw
-from OpenGL.GL import *
-import OpenGL.GL.shaders
-import numpy as np
-import random
-import sys
-import os.path
-from numpy.core.defchararray import array
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import grafica.transformations as tr
-import grafica.basic_shapes as bs
-import grafica.easy_shaders as es
-import grafica.lighting_shaders as ls
-import grafica.performance_monitor as pm
-from grafica.assets_path import getAssetPath
 from OBJreader import *
 from collisions import *
 from skybox import *
+import json
 
 __author__ = "Gerardo Trincado"
 __license__ = "MIT"
@@ -54,7 +40,7 @@ def on_key(window, key, scancode, action, mods):
     elif key == glfw.KEY_ESCAPE:
         glfw.set_window_should_close(window, True)
 
-ball_radius = 0.32
+ball_radius = 0.33
 ball_pos=[np.array([8, 0, 0], dtype=np.float32),
     np.array([-5, 0, 0], dtype=np.float32),
     np.array([-5-np.sqrt(3)*ball_radius, ball_radius, 0], dtype=np.float32),
@@ -96,6 +82,11 @@ for i in range(16):
         counter_yellow+=1
 
 if __name__ == "__main__":
+    #jason = float(sys.argv[1])
+    jason = 'config.json'
+    jason_file = open (jason, "r")
+    jason_dic = json.loads(jason_file.read())[0]
+    print(jason_dic)
 
     # Initialize glfw
     if not glfw.init():
@@ -228,7 +219,7 @@ if __name__ == "__main__":
             0.0
         ])
         r, g, b = ball_rgb[i][0], ball_rgb[i][1], ball_rgb[i][2]
-        ball = Ball(rgbPhongPipeline, position, velocity, r, g, b)
+        ball = Ball(rgbPhongPipeline, position, velocity, r, g, b, textureShaderProgram)
         balls += [ball]
 
     #cue
@@ -319,7 +310,7 @@ if __name__ == "__main__":
         glUniformMatrix4fv(glGetUniformLocation(phongPipeline.shaderProgram, "view"), 1, GL_TRUE, view)
 
         glUniformMatrix4fv(glGetUniformLocation(phongPipeline.shaderProgram, "model"), 1, GL_TRUE, tr.matmul([
-            tr.translate(0,0,-7.5),tr.uniformScale(0.1)]))
+            tr.translate(0,0,-7.4),tr.uniformScale(0.1)]))
         phongPipeline.drawCall(gpuPoolTable)
 
         for i in range(len(balls)):
@@ -361,7 +352,7 @@ if __name__ == "__main__":
             arrow_pos=balls[0].position
             arrowX = arrow_pos[0] - arrow_delta * np.sin(camera_theta)
             arrowY = arrow_pos[1] - arrow_delta * np.cos(camera_theta)
-            arrowZ = arrow_pos[2] - 0.4
+            arrowZ = arrow_pos[2] - 0.32
             glUniformMatrix4fv(glGetUniformLocation(textureShaderProgram.shaderProgram, "model"), 1, GL_TRUE, tr.matmul([
                     tr.translate(arrowX, arrowY, arrowZ),
                     tr.rotationZ(-camera_theta - np.pi/2),
@@ -373,12 +364,16 @@ if __name__ == "__main__":
             arrow_pos=balls[0].position
             arrowX = arrow_pos[0] - arrow_delta * np.sin(camera_theta)
             arrowY = arrow_pos[1] - arrow_delta * np.cos(camera_theta)
-            arrowZ = arrow_pos[2] - 0.4
+            arrowZ = arrow_pos[2] - 0.32
             glUniformMatrix4fv(glGetUniformLocation(textureShaderProgram.shaderProgram, "model"), 1, GL_TRUE, tr.matmul([
                     tr.translate(arrowX, arrowY, arrowZ),
                     tr.rotationZ(-camera_theta - np.pi/2),
                     tr.scale(2,0.5,1)]))
             textureShaderProgram.drawCall(gpuArrow)
+
+        for ball in balls:
+            if ball.exists:
+                ball.draw_shadow()
 
         glUseProgram(rgbPhongPipeline.shaderProgram)
         glUniform3f(glGetUniformLocation(rgbPhongPipeline.shaderProgram, "viewPosition"), viewPos[0], viewPos[1], viewPos[2])

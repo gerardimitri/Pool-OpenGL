@@ -95,7 +95,7 @@ fn main() -> color_eyre::Result<()> {
             .material(Material::diffuse(hex_color(0xff9933))),
     );
 
-    // Plano que simula cielo, para el eje Z
+    // Plano que simula muro, para el eje Z
     scene.add(
         Object::new(plane(glm::vec3(0.0, 0.0, 1.0), -1.0)
             .translate(&glm::vec3(0.0, 0.0, -21.0))
@@ -103,7 +103,7 @@ fn main() -> color_eyre::Result<()> {
             .material(Material::diffuse(hex_color(0xffbf80))),
     );
 
-    // Plano de cielo para el eje X
+    // Plano de muro para el eje X
     scene.add(
         Object::new(plane(glm::vec3(1.0, 0.0, 0.0), -1.0)
             .translate(&glm::vec3(21.0, 0.0, 0.0))

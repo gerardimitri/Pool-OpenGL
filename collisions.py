@@ -122,14 +122,16 @@ def createColorNormalSphere(N, r, g, b, rho=RADIUS):
     return bs.Shape(vertices, indices)
 
 class Ball:
-    def __init__(self, pipeline, position, velocity, r, g, b):
+    def __init__(self, pipeline, position, velocity, r, g, b, texture_pipeline):
         shape = createColorNormalSphere(BALL_DISCRETIZATION, r, g, b)
         # addapting the size of the ball's vertices to have a ball
         # with the desired radius
         scaleFactor = 2 * RADIUS
         bs.scaleVertices(shape, 9, (scaleFactor, scaleFactor, scaleFactor))
         self.pipeline = pipeline
+        self.texpipeline = texture_pipeline
         self.gpuShape = createGPUShape(self.pipeline, shape)
+        self.gpuShapeShadow = createTextureGPUShape(bs.createTextureQuad(1, 1), self.texpipeline, 'assets/shadow.png')
         self.position = position
         self.radius = RADIUS
         self.velocity = velocity
@@ -150,10 +152,14 @@ class Ball:
         glUniformMatrix4fv(glGetUniformLocation(self.pipeline.shaderProgram, "model"), 1, GL_TRUE, 
         tr.translate(self.position[0], self.position[1], 0.0)
         )
-        glUniformMatrix4fv(glGetUniformLocation(self.pipeline.shaderProgram, "transform"), 1, GL_TRUE,
-            tr.translate(self.position[0], self.position[1], 0.0)
-        )
         self.pipeline.drawCall(self.gpuShape)
+
+    def draw_shadow(self):
+        glUniformMatrix4fv(glGetUniformLocation(self.texpipeline.shaderProgram, "model"), 1, GL_TRUE, tr.matmul([
+        tr.translate(self.position[0], self.position[1], -self.radius+0.1),
+        tr.uniformScale(1.5)
+        ]))
+        self.texpipeline.drawCall(self.gpuShapeShadow)
     
 
 def rotate2D(vector, theta):
