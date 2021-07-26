@@ -16,6 +16,7 @@ import grafica.performance_monitor as pm
 from grafica.assets_path import getAssetPath
 from OBJreader import *
 from collisions import *
+from skybox import *
 
 __author__ = "Gerardo Trincado"
 __license__ = "MIT"
@@ -120,6 +121,7 @@ if __name__ == "__main__":
     phongPipeline = ls.SimpleTexturePhongShaderProgram()
     rgbPhongPipeline = ls.SimplePhongShaderProgram()
     mvpPipeline = es.SimpleModelViewProjectionShaderProgram()
+    textureShaderProgram = es.SimpleTextureModelViewProjectionShaderProgram()
 
     # Telling OpenGL to use our shader program
     glUseProgram(pipeline.shaderProgram)
@@ -138,8 +140,12 @@ if __name__ == "__main__":
         gpuShape.fillBuffers(shape.vertices, shape.indices, GL_STATIC_DRAW)
         return gpuShape
 
+        
+
     # Creating shapes on GPU memory
     gpuAxis = createGPUShape(mvpPipeline, bs.createAxis(7))
+
+    skybox = create_skybox(textureShaderProgram)
 
     shapePoolTable = readOBJ('assets/pool_table.obj')
     gpuPoolTable = createGPUShape(phongPipeline, shapePoolTable)
@@ -152,6 +158,7 @@ if __name__ == "__main__":
 
 
     # Setting uniforms that will NOT change on each iteration
+
     
     glUseProgram(phongPipeline.shaderProgram)
     glUniform3f(glGetUniformLocation(phongPipeline.shaderProgram, "La"), 1.0, 1.0, 1.0)
@@ -202,6 +209,10 @@ if __name__ == "__main__":
     # Setting up the projection transform
     projection = tr.perspective(60, float(width)/float(height), 0.1, 100)
     glUniformMatrix4fv(glGetUniformLocation(rgbPhongPipeline.shaderProgram, "projection"), 1, GL_TRUE, projection)
+
+    glUseProgram(textureShaderProgram.shaderProgram)
+    glUniformMatrix4fv(glGetUniformLocation(textureShaderProgram.shaderProgram, "projection"), 1, GL_TRUE, projection)
+    #glUniformMatrix4fv(glGetUniformLocation(textureShaderProgram.shaderProgram, "model"), 1, GL_TRUE, tr.identity())
 
 
     #balls
@@ -299,6 +310,8 @@ if __name__ == "__main__":
         
 
         # Drawing shapes
+
+
         glUseProgram(phongPipeline.shaderProgram)
         glUniform3f(glGetUniformLocation(phongPipeline.shaderProgram, "viewPosition"), viewPos[0], viewPos[1], viewPos[2])
         glUniformMatrix4fv(glGetUniformLocation(phongPipeline.shaderProgram, "view"), 1, GL_TRUE, view)
@@ -328,9 +341,11 @@ if __name__ == "__main__":
             phongPipeline.drawCall(gpuPoolCue)
 
         
-        glUseProgram(mvpPipeline.shaderProgram)
-        glUniformMatrix4fv(glGetUniformLocation(mvpPipeline.shaderProgram, "view"), 1, GL_TRUE, view)
-        mvpPipeline.drawCall(gpuAxis, GL_LINES)
+        #glUseProgram(mvpPipeline.shaderProgram)
+        #mvpPipeline.drawCall(gpuAxis, GL_LINES)
+        glUseProgram(textureShaderProgram.shaderProgram)
+        glUniformMatrix4fv(glGetUniformLocation(textureShaderProgram.shaderProgram, "view"), 1, GL_TRUE, view)
+        sg.drawSceneGraphNode(skybox, textureShaderProgram, "model")
 
         glUseProgram(rgbPhongPipeline.shaderProgram)
         glUniform3f(glGetUniformLocation(rgbPhongPipeline.shaderProgram, "viewPosition"), viewPos[0], viewPos[1], viewPos[2])
