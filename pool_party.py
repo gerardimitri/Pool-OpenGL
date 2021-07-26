@@ -350,6 +350,7 @@ if __name__ == "__main__":
     # freeing GPU memory
     gpuAxis.clear()
     gpuPoolTable.clear()
+    gpuPoolCue.clear()
     for ball in balls:
         ball.gpuShape.clear()
 
