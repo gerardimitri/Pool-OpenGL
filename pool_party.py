@@ -5,7 +5,6 @@ import numpy as np
 import random
 import sys
 import os.path
-
 from numpy.core.defchararray import array
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import grafica.transformations as tr
@@ -55,7 +54,7 @@ def on_key(window, key, scancode, action, mods):
     elif key == glfw.KEY_ESCAPE:
         glfw.set_window_should_close(window, True)
 
-ball_radius = 0.31
+ball_radius = 0.32
 ball_pos=[np.array([8, 0, 0], dtype=np.float32),
     np.array([-5, 0, 0], dtype=np.float32),
     np.array([-5-np.sqrt(3)*ball_radius, ball_radius, 0], dtype=np.float32),
@@ -146,11 +145,11 @@ if __name__ == "__main__":
     gpuAxis = createGPUShape(mvpPipeline, bs.createAxis(7))
 
     skybox = create_skybox(textureShaderProgram)
-
+    gpuPoint = createGPUShape(mvpPipeline, bs.createColorCircle(20, 0.9, 0.9, 0.9))
     shapePoolTable = readOBJ('assets/pool_table.obj')
     gpuPoolTable = createGPUShape(phongPipeline, shapePoolTable)
     gpuPoolTable.texture = es.textureSimpleSetup('assets/pool_table.jpg', GL_REPEAT, GL_REPEAT, GL_LINEAR, GL_LINEAR)
-
+    gpuArrow = createTextureGPUShape(bs.createTextureQuad(1,1), textureShaderProgram, "assets/arrow.png" )
 
     shapePoolCue = readOBJ('assets/pool_cue.obj')
     gpuPoolCue = createGPUShape(phongPipeline, shapePoolCue)
@@ -161,6 +160,7 @@ if __name__ == "__main__":
 
     
     glUseProgram(phongPipeline.shaderProgram)
+
     glUniform3f(glGetUniformLocation(phongPipeline.shaderProgram, "La"), 1.0, 1.0, 1.0)
     glUniform3f(glGetUniformLocation(phongPipeline.shaderProgram, "Ld"), 1.0, 1.0, 1.0)
     glUniform3f(glGetUniformLocation(phongPipeline.shaderProgram, "Ls"), 1.0, 1.0, 1.0)
@@ -211,6 +211,8 @@ if __name__ == "__main__":
     glUniformMatrix4fv(glGetUniformLocation(rgbPhongPipeline.shaderProgram, "projection"), 1, GL_TRUE, projection)
 
     glUseProgram(textureShaderProgram.shaderProgram)
+    glEnable(GL_BLEND)
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
     glUniformMatrix4fv(glGetUniformLocation(textureShaderProgram.shaderProgram, "projection"), 1, GL_TRUE, projection)
     #glUniformMatrix4fv(glGetUniformLocation(textureShaderProgram.shaderProgram, "model"), 1, GL_TRUE, tr.identity())
 
@@ -320,7 +322,6 @@ if __name__ == "__main__":
             tr.translate(0,0,-7.5),tr.uniformScale(0.1)]))
         phongPipeline.drawCall(gpuPoolTable)
 
-
         for i in range(len(balls)):
             if np.linalg.norm(balls[i].velocity) <0.001:
                 draw_cue[i] = True
@@ -340,16 +341,49 @@ if __name__ == "__main__":
                 tr.uniformScale(0.1)]))
             phongPipeline.drawCall(gpuPoolCue)
 
-        
-        #glUseProgram(mvpPipeline.shaderProgram)
+        glUseProgram(mvpPipeline.shaderProgram)
         #mvpPipeline.drawCall(gpuAxis, GL_LINES)
+        points=[]
+        for ball in balls:
+            if False in draw_cue:
+                if ball.velocity.any() > 0.001:
+                    glUniformMatrix4fv(glGetUniformLocation(mvpPipeline.shaderProgram, "model"), 1, GL_TRUE, 
+                        tr.translate(ball.position[0], ball.position[1], 0.1)
+                            )
+                    mvpPipeline.drawCall(gpuPoint)
+
         glUseProgram(textureShaderProgram.shaderProgram)
         glUniformMatrix4fv(glGetUniformLocation(textureShaderProgram.shaderProgram, "view"), 1, GL_TRUE, view)
         sg.drawSceneGraphNode(skybox, textureShaderProgram, "model")
 
+        if False not in draw_cue and controller.upcam:
+            arrow_delta = 1.5
+            arrow_pos=balls[0].position
+            arrowX = arrow_pos[0] - arrow_delta * np.sin(camera_theta)
+            arrowY = arrow_pos[1] - arrow_delta * np.cos(camera_theta)
+            arrowZ = arrow_pos[2] - 0.4
+            glUniformMatrix4fv(glGetUniformLocation(textureShaderProgram.shaderProgram, "model"), 1, GL_TRUE, tr.matmul([
+                    tr.translate(arrowX, arrowY, arrowZ),
+                    tr.rotationZ(-camera_theta - np.pi/2),
+                    tr.scale(3,1,1)]))
+            textureShaderProgram.drawCall(gpuArrow)
+            
+        elif False not in draw_cue and not controller.upcam:
+            arrow_delta = 3.5
+            arrow_pos=balls[0].position
+            arrowX = arrow_pos[0] - arrow_delta * np.sin(camera_theta)
+            arrowY = arrow_pos[1] - arrow_delta * np.cos(camera_theta)
+            arrowZ = arrow_pos[2] - 0.4
+            glUniformMatrix4fv(glGetUniformLocation(textureShaderProgram.shaderProgram, "model"), 1, GL_TRUE, tr.matmul([
+                    tr.translate(arrowX, arrowY, arrowZ),
+                    tr.rotationZ(-camera_theta - np.pi/2),
+                    tr.scale(2,0.5,1)]))
+            textureShaderProgram.drawCall(gpuArrow)
+
         glUseProgram(rgbPhongPipeline.shaderProgram)
         glUniform3f(glGetUniformLocation(rgbPhongPipeline.shaderProgram, "viewPosition"), viewPos[0], viewPos[1], viewPos[2])
         glUniformMatrix4fv(glGetUniformLocation(rgbPhongPipeline.shaderProgram, "view"), 1, GL_TRUE, view)
+
         # drawing all the balls
         for ball in balls:
             if ball.exists:
@@ -358,14 +392,15 @@ if __name__ == "__main__":
                 balls.remove(ball)
                 draw_cue.pop(0)
 
-
-        # Once the drawing is rendered, buffers are swap so an uncomplete drawing is never seen.
+        #Once the drawing is rendered, buffers are swap so an uncomplete drawing is never seen.
         glfw.swap_buffers(window)
 
     # freeing GPU memory
+    skybox.clear()
     gpuAxis.clear()
     gpuPoolTable.clear()
     gpuPoolCue.clear()
+    gpuArrow.clear()
     for ball in balls:
         ball.gpuShape.clear()
 

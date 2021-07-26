@@ -218,12 +218,12 @@ def areColliding(ball1, ball2):
 def collideWithBorder(ball):
     hole_radius = 0.55
     holes=[
-        np.array([11.5, 5.0, 0],),
-        np.array([11.5, -5.0, 0],),
-        np.array([-11.5, 5.0, 0],),
-        np.array([-11.5, -5.0, 0],),
-        np.array([0, 5.0, 0],),
-        np.array([0, -5.0, 0],)
+        np.array([11.6, 5.2, 0],),
+        np.array([11.6, -5.2, 0],),
+        np.array([-11.6, 5.2, 0],),
+        np.array([-11.6, -5.2, 0],),
+        np.array([0, 5.2, 0],),
+        np.array([0, -5.2, 0],)
     ]
 
     for hole in holes:
@@ -231,18 +231,18 @@ def collideWithBorder(ball):
             ball.exists=False
 
     # Right
-    if ball.position[0] + ball.radius > 11.5:
+    if ball.position[0] + ball.radius > 11.6:
         ball.velocity[0] = -abs(ball.velocity[0])
 
     # Left
-    if ball.position[0] < -11.5 + ball.radius:
+    if ball.position[0] < -11.6 + ball.radius:
         ball.velocity[0] = abs(ball.velocity[0])
 
     # Top
-    if ball.position[1] > 5.0 - ball.radius:
+    if ball.position[1] > 5.2 - ball.radius:
         ball.velocity[1] = -abs(ball.velocity[1])
 
     # Bottom
-    if ball.position[1] < -5.0 + ball.radius:
+    if ball.position[1] < -5.2 + ball.radius:
         ball.velocity[1] = abs(ball.velocity[1])
 
