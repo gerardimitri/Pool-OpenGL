@@ -205,10 +205,9 @@ def collide(ball1, ball2):
         v2t = np.dot(ball2.velocity, tangent) * tangent
 
         # swaping the normal components...
-        # this means that we applying energy and momentum conservation
-        elastic_velocity=(ball1.velocity+ball2.velocity)/2
-        ball1.velocity = (v2n + v1t)#+elastic_velocity
-        ball2.velocity = (v1n + v2t)#+elastic_velocity
+        
+        ball1.velocity = (v2n + v1t)
+        ball2.velocity = (v1n + v2t)
 
 
 def areColliding(ball1, ball2):
